@@ -1,10 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, Dimensions, Platform } from 'react-native';
-import { init } from '@livechat/livechat-visitor-sdk';
+import { StyleSheet, Text, Dimensions } from 'react-native';
 import { View } from 'react-native-animatable';
 import PropTypes from 'prop-types';
 import { GiftedChat } from 'react-native-gifted-chat';
-import NavigationBar from './NavigationBar/NavigationBar';
+import NavigationBar from './NavigationBar';
 
 const { height, width } = Dimensions.get('window');
 const totalSize = num => (Math.sqrt((height * height) + (width * width)) * num) / 100;
@@ -118,6 +117,18 @@ export default class Chat extends React.Component {
     });
   };
 
+  renderHeader = () => {
+    if (this.props.renderHeader) {
+      return this.props.renderHeader();
+    }
+
+    return (
+      <Text style={styles.status}>
+        { this.state.onlineStatus ? this.props.greeting : this.props.noAgents }
+      </Text>
+    );
+  }
+
   renderFooter = () => {
     if (this.state.typingText) {
       return (
@@ -131,21 +142,32 @@ export default class Chat extends React.Component {
     return null;
   };
 
+  renderNavigationBar = () => {
+    if (this.props.renderNavigationBar) {
+      return this.props.renderNavigationBar();
+    }
+
+    return (
+      <NavigationBar
+        chatTitle={this.props.chatTitle}
+        closeChat={this.closeChat}
+      />
+    );
+  };
+
   render() {
     if (this.props.isChatOn) {
       return (
         <View
-          animation="lightSpeedIn"
-          style={styles.container}
+          animation={this.props.isAnimated ? "lightSpeedIn" : null}
+          style={[styles.container, this.props.livechatContainerStyle]}
           ref={(ref) => { this.chat = ref; }}
         >
-          <NavigationBar chatTitle={this.props.chatTitle} closeChat={this.closeChat} />
-          <Text style={styles.status}>
-            { this.state.onlineStatus ? this.props.greeting : this.props.noAgents }
-          </Text>
+          {this.renderNavigationBar()}
+          {this.renderHeader()}
           <GiftedChat
             messages={this.state.messages}
-            renderFooter={this.renderFooter}
+            renderFooter={this.props.renderFooter || this.renderFooter}
             onSend={this.handleSend}
             onInputTextChanged={this.handleInputTextChange}
             user={this.getVisitor()}
@@ -159,13 +181,17 @@ export default class Chat extends React.Component {
 }
 
 Chat.propTypes = {
-  license: PropTypes.number.isRequired,
+  license: PropTypes.string.isRequired,
   chatTitle: PropTypes.string.isRequired,
   closeChat: PropTypes.func.isRequired,
   isChatOn: PropTypes.bool.isRequired,
   greeting: PropTypes.string.isRequired,
   noAgents: PropTypes.string.isRequired,
+  renderNavigationBar: PropTypes.func,
+  renderFooter: PropTypes.func,
+  renderHeader: PropTypes.func,
 };
+
 
 const styles = StyleSheet.create({
   hide: {
@@ -175,8 +201,10 @@ const styles = StyleSheet.create({
   },
   container: {
     width,
-    height: Platform.OS === 'ios' ? height : height - height / 25,
+    height: height / 1.24,
     position: 'absolute',
+    top: 0,
+    left: 0,
     flexDirection: 'column',
     backgroundColor: '#fff',
   },
